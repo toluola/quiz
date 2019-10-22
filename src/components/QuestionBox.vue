@@ -5,19 +5,22 @@
 
       <hr class="my-4" />
       <b-list-group
-        v-for="(answer, index) in answers"
+        v-for="(answer, index) in shuffledAnswers"
         :key="index"
         @click.prevent="selectAnswer(index)"
-        
       >
-        <b-list-group-item 
-        :class="[selectedIndex === index ? 'selected' : '']"
-        >
+        <b-list-group-item :class="answerClass(index)">
         {{ answer }}
-        </b-list-group-item>
+      </b-list-group-item>
       </b-list-group>
 
-      <b-button variant="primary" href="#">Submit</b-button>
+      <b-button 
+        variant="primary"
+        @click="submitAnswer"
+        :disabled="selectedIndex === null || answered" 
+      >
+        Submit
+      </b-button>
       <b-button @click="next" variant="success" href="#">Next</b-button>
     </b-jumbotron>
   </div>
@@ -29,12 +32,15 @@ import _ from "lodash";
 export default {
   props: {
     currentQuestion: Object,
-    next: Function
+    next: Function,
+    increment: Function
   },
   data() {
     return {
       selectedIndex: null,
-      shuffledAnswers: []
+      correctIndex: null,
+      shuffledAnswers: [],
+      answered: false
     };
   },
   computed: {
@@ -45,22 +51,47 @@ export default {
     }
   },
   watch: {
-    currentQuestion() {
-      this.selectedIndex = null
-      this.shuffleAnswers()
+    currentQuestion: {
+      immediate: true,
+      handler() {
+        this.selectedIndex = null;
+        this.answered = false
+        this.shuffleAnswers();
+      }
     }
   },
   methods: {
     selectAnswer(index) {
       this.selectedIndex = index;
     },
+    submitAnswer() {
+      let isCorrect = false
+      if (this.selectedIndex === this.correctIndex) {
+        isCorrect = true
+      }
+      this.answered = true
+      this.increment(isCorrect)
+    },
+    answerClass(index) {
+      let answerClass = ''
+
+      if (!this.answered && this.selectedIndex === index) {
+        answerClass = 'selected'
+      } else if (this.answered && this.correctIndex === index) {
+        answerClass = 'correct'
+      } else if (this.answered && this.selectedIndex === index && this.correctIndex !== index) {
+        answerClass = 'incorrect'
+      }
+      return answerClass
+    },
     shuffleAnswers() {
-      let answers = [...this.currentQuestion.incorrect_answers, this.currentQuestion.correct_answer];
-      this.shuffledAnswers = _.shuffle(answers)
+      let answers = [
+        ...this.currentQuestion.incorrect_answers,
+        this.currentQuestion.correct_answer
+      ];
+      this.shuffledAnswers = _.shuffle(answers);
+      this.correctIndex = this.shuffledAnswers.indexOf(this.currentQuestion.correct_answer)
     }
-  },
-  mounted() {
-    this.shuffleAnswers()
   }
 };
 </script>
@@ -84,10 +115,10 @@ export default {
 }
 
 .correct {
-  background-color: lightgreen;
+  background: lightgreen;
 }
 
 .incorrect {
-  background-color: red;
+  background: red;
 }
 </style>
